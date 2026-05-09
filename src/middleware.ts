@@ -1,6 +1,5 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { getSupabasePublicKey, getSupabaseUrl } from "@/lib/supabase/env";
+import { AUTH_COOKIE_NAME } from "@/lib/auth-cookie";
 
 const PUBLIC_PATHS = new Set([
   "/login",
@@ -13,72 +12,36 @@ function isStaticAsset(pathname: string): boolean {
   return /\.(ico|png|jpg|jpeg|gif|webp|svg|woff2?|ttf|eot)$/i.test(pathname);
 }
 
-function copyCookies(from: NextResponse, to: NextResponse) {
-  from.cookies.getAll().forEach((c) => {
-    to.cookies.set(c.name, c.value);
-  });
+function hasSession(request: NextRequest): boolean {
+  const t = request.cookies.get(AUTH_COOKIE_NAME)?.value;
+  return Boolean(t && t.length > 0);
 }
 
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (isStaticAsset(pathname)) {
     return NextResponse.next();
   }
 
-  let supabaseUrl: string;
-  let supabaseKey: string;
-  try {
-    supabaseUrl = getSupabaseUrl();
-    supabaseKey = getSupabasePublicKey();
-  } catch {
-    console.error(
-      "[middleware] Variables Supabase manquantes — vérifie .env (URL + clé publique).",
-    );
-    if (PUBLIC_PATHS.has(pathname)) {
-      return NextResponse.next();
-    }
-    return NextResponse.redirect(new URL("/login", request.url));
+  if (pathname.startsWith("/api/auth")) {
+    return NextResponse.next();
   }
 
-  let supabaseResponse = NextResponse.next({
-    request,
-  });
-
-  const supabase = createServerClient(supabaseUrl, supabaseKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet, headersToSet) {
-        cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options),
-        );
-        Object.entries(headersToSet).forEach(([k, v]) =>
-          supabaseResponse.headers.set(k, v),
-        );
-      },
-    },
-  });
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const sessionOk = hasSession(request);
 
   if (PUBLIC_PATHS.has(pathname)) {
-    if (user && pathname === "/login") {
-      const redirect = NextResponse.redirect(new URL("/", request.url));
-      copyCookies(supabaseResponse, redirect);
-      return redirect;
+    if (sessionOk && pathname === "/login") {
+      return NextResponse.redirect(new URL("/", request.url));
     }
-    return supabaseResponse;
+    return NextResponse.next();
   }
 
-  if (!user) {
+  if (!sessionOk) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  return supabaseResponse;
+  return NextResponse.next();
 }
 
 export const config = {

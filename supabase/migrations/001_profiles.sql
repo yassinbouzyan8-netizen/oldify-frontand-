@@ -1,6 +1,7 @@
 -- Oldify — stockage des utilisateurs côté app (table métier)
--- Nom de la table : public.profiles (= une ligne par compte, liée à auth.users).
--- Les comptes de connexion restent dans auth.users (Supabase Auth) ; cette table garde nom, email copié, etc.
+-- Nom de la table : public.profiles (= une ligne par compte).
+-- Si tu utilises encore Supabase Auth : lié à auth.users. Si ton auth est sur ton API uniquement,
+-- adapte cette table (ex. id UUID sans FK) ou remplis-la depuis ton backend.
 -- À exécuter dans Supabase : SQL Editor → New query → Run
 --
 -- MODE TEST (sans vérifier l’e-mail à l’inscription) :

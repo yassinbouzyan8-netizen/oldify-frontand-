@@ -2,12 +2,8 @@
 
 import type { ReactNode } from "react";
 import { UserAvatarIcon } from "@/components/icons/user-avatar-icon";
-import {
-  displayNameFromUserAndProfile,
-  handleFromUser,
-} from "@/lib/supabase/display-name";
-import { useAuthUser } from "@/lib/supabase/use-auth-user";
-import { useProfile } from "@/lib/supabase/use-profile";
+import { displayNameFromUser, handleFromUser } from "@/lib/auth-display-name";
+import { useAuthUser } from "@/lib/use-auth-user";
 
 type ProfileIdentityProps = {
   /** Ex. liste stats sous le pseudo */
@@ -16,14 +12,13 @@ type ProfileIdentityProps = {
 
 export function ProfileIdentity({ children }: ProfileIdentityProps) {
   const { user, loading: authLoading } = useAuthUser();
-  const { profile } = useProfile(user);
   const name = user
-    ? displayNameFromUserAndProfile(user, profile)
+    ? displayNameFromUser(user)
     : authLoading
       ? "…"
       : "Mon compte";
   const handle = user
-    ? handleFromUser(user, profile)
+    ? handleFromUser(user)
     : authLoading
       ? "…"
       : "@user_oldify";

@@ -2,22 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 
 type LogoutButtonProps = {
   className?: string;
 };
-
-/** Nettoie l’ancienne démo cookie/localStorage si présents. */
-function clearLegacyDemoAuth() {
-  if (typeof document === "undefined") return;
-  document.cookie = "oldify_session=; path=/; max-age=0";
-  try {
-    window.localStorage.removeItem("oldify_logged_in");
-  } catch {
-    /* ignore */
-  }
-}
 
 export function LogoutButton({ className }: LogoutButtonProps) {
   const router = useRouter();
@@ -29,12 +17,19 @@ export function LogoutButton({ className }: LogoutButtonProps) {
       disabled={loading}
       onClick={async () => {
         setLoading(true);
-        clearLegacyDemoAuth();
-        const supabase = createClient();
-        await supabase.auth.signOut();
-        setLoading(false);
-        router.push("/login");
-        router.refresh();
+        try {
+          await fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "include",
+          });
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new Event("oldify-auth-change"));
+          }
+          router.push("/login");
+          router.refresh();
+        } finally {
+          setLoading(false);
+        }
       }}
       className={
         className ??

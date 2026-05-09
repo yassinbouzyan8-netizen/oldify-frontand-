@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { mapAuthError } from "@/lib/supabase/auth-errors";
-import { createClient } from "@/lib/supabase/client";
+import { useRef, useState } from "react";
+import { mapAuthError } from "@/lib/auth-errors";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -16,6 +15,7 @@ export function RegisterForm() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const submitting = useRef(false);
 
   return (
     <div className="space-y-8">
@@ -32,6 +32,7 @@ export function RegisterForm() {
         className="space-y-5"
         onSubmit={async (e) => {
           e.preventDefault();
+          if (submitting.current) return;
           setError(null);
           if (password !== confirmPassword) {
             setError("Les mots de passe ne correspondent pas.");
@@ -41,45 +42,61 @@ export function RegisterForm() {
             setError("Le mot de passe doit contenir au moins 6 caractères.");
             return;
           }
+          submitting.current = true;
           setLoading(true);
-          const supabase = createClient();
-          const origin =
-            typeof window !== "undefined" ? window.location.origin : "";
-          const { data, error: signUpError } = await supabase.auth.signUp({
-            email: email.trim(),
-            password,
-            options: {
-              emailRedirectTo: origin ? `${origin}/` : undefined,
-              data: { full_name: name.trim() || undefined },
-            },
-          });
-          setLoading(false);
-          if (signUpError) {
-            setError(mapAuthError(signUpError.message));
-            return;
-          }
-          if (data.session) {
-            router.push("/");
-            router.refresh();
-            return;
-          }
-
-          // Sans session tout de suite (ex. projet avec confirmation mail) : tenter connexion immédiate
-          if (data.user) {
-            const { data: signInData, error: signInError } =
-              await supabase.auth.signInWithPassword({
+          try {
+            const regRes = await fetch("/api/auth/register", {
+              method: "POST",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
                 email: email.trim(),
                 password,
-              });
-            if (!signInError && signInData.session) {
-              router.push("/");
-              router.refresh();
+                fullName: name.trim() || undefined,
+              }),
+            });
+            const regData = (await regRes.json()) as {
+              error?: string;
+              tokenSet?: boolean;
+            };
+            if (!regRes.ok) {
+              setError(mapAuthError(regData.error || regRes.statusText));
               return;
             }
-          }
 
-          router.push("/login");
-          router.refresh();
+            if (!regData.tokenSet) {
+              const loginRes = await fetch("/api/auth/login", {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  email: email.trim(),
+                  password,
+                }),
+              });
+              const loginData = (await loginRes.json()) as { error?: string };
+              if (!loginRes.ok) {
+                setError(
+                  mapAuthError(
+                    loginData.error ||
+                      "Compte créé. Connecte-toi avec ton mot de passe.",
+                  ),
+                );
+                router.push("/login");
+                router.refresh();
+                return;
+              }
+            }
+
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new Event("oldify-auth-change"));
+            }
+            router.push("/");
+            router.refresh();
+          } finally {
+            setLoading(false);
+            submitting.current = false;
+          }
         }}
       >
         {error ? (

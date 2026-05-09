@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { mapAuthError } from "@/lib/supabase/auth-errors";
-import { createClient } from "@/lib/supabase/client";
+import { useRef, useState } from "react";
+import { mapAuthError } from "@/lib/auth-errors";
 
 export function LoginForm() {
   const router = useRouter();
@@ -13,6 +12,7 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const submitting = useRef(false);
 
   return (
     <div className="space-y-8">
@@ -29,20 +29,34 @@ export function LoginForm() {
         className="space-y-5"
         onSubmit={async (e) => {
           e.preventDefault();
+          if (submitting.current) return;
           setError(null);
+          submitting.current = true;
           setLoading(true);
-          const supabase = createClient();
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: email.trim(),
-            password,
-          });
-          setLoading(false);
-          if (signInError) {
-            setError(mapAuthError(signInError.message));
-            return;
+          try {
+            const res = await fetch("/api/auth/login", {
+              method: "POST",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: email.trim(),
+                password,
+              }),
+            });
+            const data = (await res.json()) as { error?: string };
+            if (!res.ok) {
+              setError(mapAuthError(data.error || res.statusText));
+              return;
+            }
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new Event("oldify-auth-change"));
+            }
+            router.push("/");
+            router.refresh();
+          } finally {
+            setLoading(false);
+            submitting.current = false;
           }
-          router.push("/");
-          router.refresh();
         }}
       >
         {error ? (
