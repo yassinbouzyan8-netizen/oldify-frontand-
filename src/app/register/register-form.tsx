@@ -15,7 +15,6 @@ export function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   return (
@@ -34,7 +33,6 @@ export function RegisterForm() {
         onSubmit={async (e) => {
           e.preventDefault();
           setError(null);
-          setInfo(null);
           if (password !== confirmPassword) {
             setError("Les mots de passe ne correspondent pas.");
             return;
@@ -65,9 +63,23 @@ export function RegisterForm() {
             router.refresh();
             return;
           }
-          setInfo(
-            "Compte créé. Si la confirmation e-mail est activée sur Supabase, ouvrez le lien reçu avant de vous connecter.",
-          );
+
+          // Sans session tout de suite (ex. projet avec confirmation mail) : tenter connexion immédiate
+          if (data.user) {
+            const { data: signInData, error: signInError } =
+              await supabase.auth.signInWithPassword({
+                email: email.trim(),
+                password,
+              });
+            if (!signInError && signInData.session) {
+              router.push("/");
+              router.refresh();
+              return;
+            }
+          }
+
+          router.push("/login");
+          router.refresh();
         }}
       >
         {error ? (
@@ -76,14 +88,6 @@ export function RegisterForm() {
             role="alert"
           >
             {error}
-          </p>
-        ) : null}
-        {info ? (
-          <p
-            className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-900"
-            role="status"
-          >
-            {info}
           </p>
         ) : null}
 

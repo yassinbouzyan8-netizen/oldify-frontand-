@@ -1,4 +1,6 @@
--- Oldify — profils utilisateurs (lié à auth.users)
+-- Oldify — stockage des utilisateurs côté app (table métier)
+-- Nom de la table : public.profiles (= une ligne par compte, liée à auth.users).
+-- Les comptes de connexion restent dans auth.users (Supabase Auth) ; cette table garde nom, email copié, etc.
 -- À exécuter dans Supabase : SQL Editor → New query → Run
 --
 -- MODE TEST (sans vérifier l’e-mail à l’inscription) :
