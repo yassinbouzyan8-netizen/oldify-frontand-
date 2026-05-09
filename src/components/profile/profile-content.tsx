@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ProfileCard, IconWrap } from "./profile-card";
+import { ProfileIdentity } from "./profile-identity";
 import {
   IconBell,
   IconBriefcase,
@@ -28,48 +28,31 @@ export function ProfileContent() {
         {/* Bloc identité */}
         <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-            <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
-              <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-full border border-gray-200 bg-gray-100 ring-2 ring-gray-100">
-                <Image
-                  src="/imges/image.png"
-                  alt="Kenza"
-                  fill
-                  className="object-cover"
-                  sizes="96px"
-                  priority
-                />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-                  KENZA
-                </h1>
-                <p className="mt-1 text-sm text-gray-500">@KENZA_oldify</p>
-
-                <ul className="mt-5 flex flex-col gap-3 text-sm text-gray-700 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-8 sm:gap-y-2">
-                  <li className="flex items-center gap-2">
-                    <IconStar className="h-5 w-5 text-amber-400" />
-                    <span>
-                      <strong className="font-semibold text-gray-900">4.8</strong>
-                      <span className="text-gray-500"> (126 évaluations)</span>
-                    </span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <IconLeaf className="h-5 w-5 text-teal-600" />
-                    <span>
-                      <strong className="font-semibold text-gray-900">320</strong>
-                      <span className="text-gray-500"> Score écologique</span>
-                    </span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <IconPin className="h-5 w-5 text-red-500" />
-                    <span>
-                      <strong className="font-semibold text-gray-900">Casablanca</strong>
-                      <span className="text-gray-500"> Maroc</span>
-                    </span>
-                  </li>
-                </ul>
-              </div>
-            </div>
+            <ProfileIdentity>
+              <ul className="mt-5 flex flex-col gap-3 text-sm text-gray-700 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-8 sm:gap-y-2">
+                <li className="flex items-center gap-2">
+                  <IconStar className="h-5 w-5 text-amber-400" />
+                  <span>
+                    <strong className="font-semibold text-gray-900">4.8</strong>
+                    <span className="text-gray-500"> (126 évaluations)</span>
+                  </span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <IconLeaf className="h-5 w-5 text-teal-600" />
+                  <span>
+                    <strong className="font-semibold text-gray-900">320</strong>
+                    <span className="text-gray-500"> Score écologique</span>
+                  </span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <IconPin className="h-5 w-5 text-red-500" />
+                  <span>
+                    <strong className="font-semibold text-gray-900">Casablanca</strong>
+                    <span className="text-gray-500"> Maroc</span>
+                  </span>
+                </li>
+              </ul>
+            </ProfileIdentity>
 
             <Link
               href="/profil/public"

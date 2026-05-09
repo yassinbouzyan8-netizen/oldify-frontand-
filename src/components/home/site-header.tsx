@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { LogoutButton } from "./logout-button";
+import { HeaderProfileLink } from "./header-profile-link";
 
 type SiteHeaderProps = {
   /** Affiche la cloche avec pastille (ex. page profil) */
@@ -52,21 +53,7 @@ export function SiteHeader({ showBell = false }: SiteHeaderProps) {
           >
             Vends tes articles
           </Link>
-          <Link
-            href="/profil"
-            className="flex items-center gap-2 rounded-lg pl-1 transition-colors hover:bg-gray-50"
-          >
-            <Image
-              src="/imges/image.png"
-              alt="Photo de profil"
-              width={36}
-              height={36}
-              className="h-9 w-9 shrink-0 rounded-full object-cover ring-2 ring-white"
-            />
-            <span className="hidden text-sm font-semibold tracking-wide text-gray-900 lg:inline">
-              KENZA
-            </span>
-          </Link>
+          <HeaderProfileLink />
           <LogoutButton />
         </div>
       </div>
