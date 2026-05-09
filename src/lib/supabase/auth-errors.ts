@@ -16,5 +16,13 @@ export function mapAuthError(message: string): string {
   if (m.includes("signup requires a valid password")) {
     return "Mot de passe invalide.";
   }
+  if (
+    m.includes("rate limit") ||
+    m.includes("too many requests") ||
+    m === "429" ||
+    m.includes("email rate limit")
+  ) {
+    return "Limite Supabase atteinte (trop de demandes). Réessaie dans 10 à 30 minutes, ou réduis les e-mails de confirmation dans Authentication → Email (mode dev).";
+  }
   return message;
 }
