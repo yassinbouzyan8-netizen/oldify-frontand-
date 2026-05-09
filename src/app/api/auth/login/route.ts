@@ -2,13 +2,18 @@ import { NextResponse } from "next/server";
 import {
   authLoginPath,
   getAuthApiBaseUrl,
+  usesExternalAuthApi,
 } from "@/lib/auth-backend-config";
 import { mapAuthError } from "@/lib/auth-errors";
 import { setTokenCookie } from "@/lib/auth-cookie-response";
+import { signSessionToken, verifyPassword } from "@/lib/local-auth/crypto";
+import { findUserByEmail } from "@/lib/local-auth/store";
 import {
   extractAccessToken,
   messageFromUpstream,
 } from "@/lib/auth-upstream";
+
+export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   let body: { email?: string; password?: string };
@@ -25,6 +30,20 @@ export async function POST(request: Request) {
       { error: "Email et mot de passe requis." },
       { status: 400 },
     );
+  }
+
+  if (!usesExternalAuthApi()) {
+    const user = findUserByEmail(email);
+    if (!user || !verifyPassword(password, user.passwordHash)) {
+      return NextResponse.json(
+        { error: mapAuthError("Invalid login credentials") },
+        { status: 401 },
+      );
+    }
+    const token = signSessionToken({ sub: user.id, email: user.email });
+    const res = NextResponse.json({ ok: true });
+    setTokenCookie(res, token);
+    return res;
   }
 
   let base: string;

@@ -30,7 +30,7 @@ export function mapAuthError(message: string): string {
     return "Impossible de joindre l’API. Vérifie OLDIFY_API_BASE_URL et que ton serveur tourne.";
   }
   if (m.includes("oldify_api_base_url")) {
-    return "Configuration : ajoute OLDIFY_API_BASE_URL dans .env (URL de ton API).";
+    return "Mode API externe : définis OLDIFY_API_BASE_URL, ou laisse-la vide pour l’auth locale intégrée.";
   }
   return message;
 }

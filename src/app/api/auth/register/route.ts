@@ -2,13 +2,18 @@ import { NextResponse } from "next/server";
 import {
   authRegisterPath,
   getAuthApiBaseUrl,
+  usesExternalAuthApi,
 } from "@/lib/auth-backend-config";
 import { mapAuthError } from "@/lib/auth-errors";
 import { setTokenCookie } from "@/lib/auth-cookie-response";
+import { signSessionToken } from "@/lib/local-auth/crypto";
+import { createLocalUser } from "@/lib/local-auth/store";
 import {
   extractAccessToken,
   messageFromUpstream,
 } from "@/lib/auth-upstream";
+
+export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   let body: { email?: string; password?: string; fullName?: string };
@@ -27,6 +32,23 @@ export async function POST(request: Request) {
       { error: "Email et mot de passe requis." },
       { status: 400 },
     );
+  }
+
+  if (!usesExternalAuthApi()) {
+    const created = createLocalUser(email, password, fullName || null);
+    if (!created.ok) {
+      return NextResponse.json(
+        { error: mapAuthError("User already registered") },
+        { status: 409 },
+      );
+    }
+    const token = signSessionToken({
+      sub: created.user.id,
+      email: created.user.email,
+    });
+    const res = NextResponse.json({ ok: true, tokenSet: true });
+    setTokenCookie(res, token);
+    return res;
   }
 
   let base: string;

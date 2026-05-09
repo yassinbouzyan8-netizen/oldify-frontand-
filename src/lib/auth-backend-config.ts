@@ -1,17 +1,15 @@
 /**
- * Contrat attendu avec ton API (à adapter sur ton backend si besoin) :
+ * Mode **externe** : `OLDIFY_API_BASE_URL` défini → les routes `/api/auth/*` proxifient ton Nest / API.
  *
- * - `POST {base}{OLDIFY_AUTH_LOGIN_PATH||/auth/login}` body `{ email, password }`
- *   → JSON avec **un** des champs : `accessToken` | `access_token` | `token` | `jwt`
+ * Mode **local** (démo, sans backend) : la variable est absente ou vide → comptes dans `.data/oldify-users.json`
+ * + cookie signé avec `AUTH_SECRET`.
  *
- * - `POST {base}{OLDIFY_AUTH_REGISTER_PATH||/auth/register}` body `{ email, password, fullName?, full_name? }`
- *   → idem token si connexion auto, sinon le front appellera `/api/auth/login` juste après.
- *
- * - `GET {base}{OLDIFY_AUTH_ME_PATH||/auth/me}` header `Authorization: Bearer <token>`
- *   → JSON utilisateur : racine ou `{ user }` ou `{ data }`, avec `id`, `email`, `full_name` ou `fullName`.
- *
- * URL de base : **serveur uniquement** (pas NEXT_PUBLIC_). Ex. `http://localhost:3001`
+ * Contrat API externe (si OLDIFY défini) : voir commentaires précédents sur /auth/login, /auth/register, /auth/me.
  */
+export function usesExternalAuthApi(): boolean {
+  return Boolean(process.env.OLDIFY_API_BASE_URL?.trim());
+}
+
 export function getAuthApiBaseUrl(): string {
   const base = process.env.OLDIFY_API_BASE_URL?.trim();
   if (!base) {
