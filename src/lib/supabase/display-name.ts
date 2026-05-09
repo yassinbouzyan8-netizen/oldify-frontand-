@@ -1,4 +1,15 @@
 import type { User } from "@supabase/supabase-js";
+import type { ProfileRow } from "@/lib/supabase/profile-types";
+
+/** Table `profiles` si présente, sinon métadonnées Auth / e-mail. */
+export function displayNameFromUserAndProfile(
+  user: User | null,
+  profile: ProfileRow | null,
+): string {
+  const fromTable = profile?.full_name?.trim();
+  if (fromTable) return fromTable;
+  return displayNameFromUser(user);
+}
 
 /** Nom affiché : `user_metadata.full_name`, sinon partie avant @ de l’e-mail. */
 export function displayNameFromUser(user: User | null): string {
@@ -14,8 +25,8 @@ export function displayNameFromUser(user: User | null): string {
 }
 
 /** Pseudo type vitrine (démo), dérivé du nom ou de l’e-mail. */
-export function handleFromUser(user: User | null): string {
-  const name = displayNameFromUser(user);
+export function handleFromUser(user: User | null, profile: ProfileRow | null = null): string {
+  const name = displayNameFromUserAndProfile(user, profile);
   const slug = name
     .normalize("NFD")
     .replace(/\p{M}/gu, "")

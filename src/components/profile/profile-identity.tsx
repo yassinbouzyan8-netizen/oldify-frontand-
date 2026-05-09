@@ -2,8 +2,12 @@
 
 import type { ReactNode } from "react";
 import { UserAvatarIcon } from "@/components/icons/user-avatar-icon";
-import { displayNameFromUser, handleFromUser } from "@/lib/supabase/display-name";
+import {
+  displayNameFromUserAndProfile,
+  handleFromUser,
+} from "@/lib/supabase/display-name";
 import { useAuthUser } from "@/lib/supabase/use-auth-user";
+import { useProfile } from "@/lib/supabase/use-profile";
 
 type ProfileIdentityProps = {
   /** Ex. liste stats sous le pseudo */
@@ -11,9 +15,18 @@ type ProfileIdentityProps = {
 };
 
 export function ProfileIdentity({ children }: ProfileIdentityProps) {
-  const { user, loading } = useAuthUser();
-  const name = user ? displayNameFromUser(user) : loading ? "…" : "Mon compte";
-  const handle = user ? handleFromUser(user) : loading ? "…" : "@user_oldify";
+  const { user, loading: authLoading } = useAuthUser();
+  const { profile } = useProfile(user);
+  const name = user
+    ? displayNameFromUserAndProfile(user, profile)
+    : authLoading
+      ? "…"
+      : "Mon compte";
+  const handle = user
+    ? handleFromUser(user, profile)
+    : authLoading
+      ? "…"
+      : "@user_oldify";
 
   return (
     <div className="flex flex-col gap-6 sm:flex-row sm:items-start">

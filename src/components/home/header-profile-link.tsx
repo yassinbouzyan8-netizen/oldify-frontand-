@@ -2,12 +2,18 @@
 
 import Link from "next/link";
 import { UserAvatarIcon } from "@/components/icons/user-avatar-icon";
-import { displayNameFromUser } from "@/lib/supabase/display-name";
+import { displayNameFromUserAndProfile } from "@/lib/supabase/display-name";
 import { useAuthUser } from "@/lib/supabase/use-auth-user";
+import { useProfile } from "@/lib/supabase/use-profile";
 
 export function HeaderProfileLink() {
-  const { user, loading } = useAuthUser();
-  const label = user ? displayNameFromUser(user) : loading ? "" : "Mon compte";
+  const { user, loading: authLoading } = useAuthUser();
+  const { profile } = useProfile(user);
+  const label = user
+    ? displayNameFromUserAndProfile(user, profile)
+    : authLoading
+      ? ""
+      : "Mon compte";
   const ariaLabel =
     user && label !== "Mon compte" ? `Profil ${label}` : "Mon profil";
 
