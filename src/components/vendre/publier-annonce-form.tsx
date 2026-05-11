@@ -1,6 +1,7 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const CATEGORIES = [
   "Femmes",
@@ -27,8 +28,25 @@ const CITIES = [
 
 export function PublierAnnonceForm() {
   const fileId = useId();
+  const router = useRouter();
   const [delivery, setDelivery] = useState(true);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [title, setTitle] = useState("");
+  const [category, setCategory] = useState<(typeof CATEGORIES)[number]>("Femmes");
+  const [condition, setCondition] = useState<(typeof CONDITIONS)[number]>(
+    "Très bon état",
+  );
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState<number>(150);
+  const [city, setCity] = useState<(typeof CITIES)[number]>("Casablanca");
+
+  const photosHelp = useMemo(() => {
+    if (!fileName) return "Les photos ne sont pas encore envoyées en base (étape suivante).";
+    return `${fileName} — envoi des photos à venir (Storage).`;
+  }, [fileName]);
 
   return (
     <div className="flex min-w-0 flex-1 flex-col bg-white">
@@ -58,10 +76,52 @@ export function PublierAnnonceForm() {
       <div className="flex-1 overflow-y-auto px-6 py-8 lg:px-10 lg:py-10">
         <form
           className="mx-auto max-w-3xl space-y-6"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
+            setError(null);
+            setSubmitting(true);
+            try {
+              const res = await fetch("/api/annonces", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({
+                  title,
+                  category,
+                  condition,
+                  description,
+                  price,
+                  city,
+                  delivery,
+                  images: [],
+                }),
+              });
+              const data = (await res.json()) as {
+                annonce?: { id?: string };
+                error?: string;
+              };
+              if (!res.ok) {
+                setError(data.error || "Impossible de publier l’annonce.");
+                return;
+              }
+              router.push("/profil/annonces");
+              router.refresh();
+            } catch {
+              setError("Erreur réseau. Réessaie.");
+            } finally {
+              setSubmitting(false);
+            }
           }}
         >
+          {error ? (
+            <p
+              className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800"
+              role="alert"
+            >
+              {error}
+            </p>
+          ) : null}
+
           <div>
             <input
               id={fileId}
@@ -88,6 +148,7 @@ export function PublierAnnonceForm() {
               {fileName ? (
                 <span className="mt-2 text-xs font-medium text-teal-600">{fileName}</span>
               ) : null}
+              <span className="mt-3 text-xs text-gray-500">{photosHelp}</span>
             </label>
           </div>
 
@@ -100,6 +161,8 @@ export function PublierAnnonceForm() {
               name="titre"
               type="text"
               placeholder="Veste en jean"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
               className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 outline-none transition-colors focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
             />
           </div>
@@ -112,7 +175,8 @@ export function PublierAnnonceForm() {
               <select
                 id="categorie"
                 name="categorie"
-                defaultValue="Femmes"
+                value={category}
+                onChange={(e) => setCategory(e.target.value as (typeof CATEGORIES)[number])}
                 className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition-colors focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
               >
                 {CATEGORIES.map((c) => (
@@ -129,7 +193,10 @@ export function PublierAnnonceForm() {
               <select
                 id="etat"
                 name="etat"
-                defaultValue="Très bon état"
+                value={condition}
+                onChange={(e) =>
+                  setCondition(e.target.value as (typeof CONDITIONS)[number])
+                }
                 className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition-colors focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
               >
                 {CONDITIONS.map((c) => (
@@ -150,6 +217,8 @@ export function PublierAnnonceForm() {
               name="description"
               rows={5}
               placeholder="Veste en jean en très bon état, peu portée."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               className="w-full resize-y rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 outline-none transition-colors focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
             />
           </div>
@@ -166,7 +235,8 @@ export function PublierAnnonceForm() {
                   type="number"
                   min={0}
                   placeholder="150"
-                  defaultValue={150}
+                  value={price}
+                  onChange={(e) => setPrice(Number(e.target.value))}
                   className="min-w-0 flex-1 rounded-l-xl border-0 bg-transparent px-4 py-3 text-gray-900 outline-none"
                 />
                 <span className="flex shrink-0 items-center rounded-r-xl border-l border-gray-200 bg-gray-50 px-4 text-sm font-medium text-gray-600">
@@ -181,7 +251,8 @@ export function PublierAnnonceForm() {
               <select
                 id="lieu"
                 name="lieu"
-                defaultValue="Casablanca"
+                value={city}
+                onChange={(e) => setCity(e.target.value as (typeof CITIES)[number])}
                 className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition-colors focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
               >
                 {CITIES.map((c) => (
@@ -221,9 +292,10 @@ export function PublierAnnonceForm() {
 
           <button
             type="submit"
-            className="w-full rounded-xl bg-teal-600 py-3.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 sm:text-base"
+            disabled={submitting}
+            className="w-full rounded-xl bg-teal-600 py-3.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-60 sm:text-base"
           >
-            Publier l&apos;annonce
+            {submitting ? "Publication…" : "Publier l'annonce"}
           </button>
         </form>
       </div>

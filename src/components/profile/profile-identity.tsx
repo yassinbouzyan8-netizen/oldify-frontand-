@@ -17,6 +17,7 @@ export function ProfileIdentity({ children }: ProfileIdentityProps) {
     : authLoading
       ? "…"
       : "Mon compte";
+  const email = user?.email ?? null;
   const handle = user
     ? handleFromUser(user)
     : authLoading
@@ -35,6 +36,9 @@ export function ProfileIdentity({ children }: ProfileIdentityProps) {
         <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
           {name}
         </h1>
+        {email ? (
+          <p className="mt-1 text-sm font-medium text-gray-600">{email}</p>
+        ) : null}
         <p className="mt-1 text-sm text-gray-500">{handle}</p>
         {children}
       </div>

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import type { CatalogFilterId } from "@/data/products";
 import { PRODUCTS } from "@/data/products";
 
@@ -10,10 +11,96 @@ type RecommendedGridProps = {
 };
 
 export function RecommendedGrid({ activeCategory }: RecommendedGridProps) {
-  const list =
-    activeCategory === "all"
-      ? PRODUCTS
-      : PRODUCTS.filter((p) => p.category === activeCategory);
+  const [dbItems, setDbItems] = useState<
+    Array<{
+      id: string;
+      title: string;
+      price: number;
+      category?: string;
+      images?: string[];
+    }>
+  >([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/annonces", { credentials: "include" });
+        const json = (await res.json()) as {
+          annonces?: Array<{
+            id: string;
+            title: string;
+            price: number;
+            category?: string;
+            images?: string[];
+          }>;
+        };
+        if (!cancelled) setDbItems(json.annonces ?? []);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const normalizedDb = useMemo(() => {
+    const mapCategory = (c?: string): Exclude<CatalogFilterId, "all"> | null => {
+      const v = (c ?? "").toLowerCase();
+      if (v.includes("femme")) return "women";
+      if (v.includes("homme")) return "men";
+      if (v.includes("électron") || v.includes("electron")) return "electronics";
+      if (v.includes("maison")) return "home";
+      if (v.includes("livre")) return "books";
+      if (v.includes("sport")) return "sports";
+      if (v.includes("enfant")) return "kids";
+      if (v.includes("autre")) return "other";
+      return null;
+    };
+
+    return dbItems
+      .map((a) => ({
+        id: a.id,
+        title: a.title,
+        price: Number(a.price) || 0,
+        image: a.images?.[0] || "/imges/produit/Sacmain.png",
+        category: mapCategory(a.category) ?? "other",
+        source: "db" as const,
+      }))
+      .filter((x) => x.title);
+  }, [dbItems]);
+
+  const list = useMemo(() => {
+    const staticList =
+      activeCategory === "all"
+        ? PRODUCTS
+        : PRODUCTS.filter((p) => p.category === activeCategory);
+
+    const dbList =
+      activeCategory === "all"
+        ? normalizedDb
+        : normalizedDb.filter((p) => p.category === activeCategory);
+
+    // DB d'abord (vraies annonces), puis fallback statique
+    return [
+      ...dbList.map((p) => ({
+        id: p.id,
+        title: p.title,
+        price: p.price,
+        image: p.image,
+      })),
+      ...staticList.map((p) => ({
+        id: p.id,
+        title: p.title,
+        price: p.price,
+        image: p.image,
+      })),
+    ];
+  }, [activeCategory, normalizedDb]);
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -21,7 +108,7 @@ export function RecommendedGrid({ activeCategory }: RecommendedGridProps) {
         Recommandé pour vous
       </h2>
 
-      {list.length === 0 ? (
+      {!loading && list.length === 0 ? (
         <p className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-12 text-center text-sm text-gray-600">
           Aucun article dans cette catégorie pour le moment.
         </p>

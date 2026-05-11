@@ -2,28 +2,78 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  USER_LISTINGS,
   type ListingStatus,
   type UserListing,
-  countByStatus,
 } from "@/data/mes-annonces";
 
-const TABS: { id: ListingStatus; label: string; count: () => number }[] =
-  [
-    { id: "en-ligne", label: "En ligne", count: () => countByStatus("en-ligne") },
-    { id: "en-attente", label: "En attente", count: () => countByStatus("en-attente") },
-    { id: "vendue", label: "Vendues", count: () => countByStatus("vendue") },
-  ];
+const TABS: { id: ListingStatus; label: string }[] = [
+  { id: "en-ligne", label: "En ligne" },
+  { id: "en-attente", label: "En attente" },
+  { id: "vendue", label: "Vendues" },
+];
 
 export function MesAnnoncesView() {
   const [tab, setTab] = useState<ListingStatus>("en-ligne");
+  const [items, setItems] = useState<UserListing[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch("/api/annonces?mine=1", { credentials: "include" });
+        const data = (await res.json()) as {
+          annonces?: Array<{
+            id: string;
+            title: string;
+            price: number;
+            images?: string[];
+            status?: string;
+          }>;
+          error?: string;
+        };
+        if (!res.ok) {
+          throw new Error(data.error || "Impossible de charger les annonces.");
+        }
+        const mapped: UserListing[] = (data.annonces ?? []).map((a) => ({
+          id: a.id,
+          title: a.title,
+          price: Number(a.price) || 0,
+          image: a.images?.[0] || "/imges/produit/Sacmain.png",
+          status: (a.status as ListingStatus) || "en-ligne",
+          views: 0,
+          likes: 0,
+        }));
+        if (!cancelled) setItems(mapped);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : "Erreur.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filtered = useMemo(
-    () => USER_LISTINGS.filter((l) => l.status === tab),
-    [tab],
+    () => items.filter((l) => l.status === tab),
+    [items, tab],
   );
+
+  const counts = useMemo(() => {
+    return {
+      "en-ligne": items.filter((i) => i.status === "en-ligne").length,
+      "en-attente": items.filter((i) => i.status === "en-attente").length,
+      vendue: items.filter((i) => i.status === "vendue").length,
+    } as const;
+  }, [items]);
 
   return (
     <div className="flex-1 bg-white px-4 py-6 sm:px-6 lg:px-8">
@@ -45,7 +95,7 @@ export function MesAnnoncesView() {
             >
               {t.label}{" "}
               <span className={active ? "text-teal-600" : "text-gray-400"}>
-                ({t.count()})
+                ({counts[t.id]})
               </span>
               {active ? (
                 <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-teal-600" />
@@ -55,13 +105,26 @@ export function MesAnnoncesView() {
         })}
       </div>
 
+      {error ? (
+        <p
+          className="mt-6 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+          role="alert"
+        >
+          {error}
+        </p>
+      ) : null}
+
+      {loading ? (
+        <p className="mt-6 text-sm text-gray-500">Chargement…</p>
+      ) : null}
+
       <ul className="mt-6 divide-y divide-gray-100">
         {filtered.map((item) => (
           <ListingRow key={item.id} item={item} />
         ))}
       </ul>
 
-      {filtered.length === 0 ? (
+      {!loading && filtered.length === 0 ? (
         <p className="py-12 text-center text-sm text-gray-500">
           Aucune annonce dans cet onglet.
         </p>

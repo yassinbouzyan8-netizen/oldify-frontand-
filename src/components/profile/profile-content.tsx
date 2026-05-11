@@ -33,23 +33,20 @@ export function ProfileContent() {
                 <li className="flex items-center gap-2">
                   <IconStar className="h-5 w-5 text-amber-400" />
                   <span>
-                    <strong className="font-semibold text-gray-900">4.8</strong>
-                    <span className="text-gray-500"> (126 évaluations)</span>
+                    <strong className="font-semibold text-gray-900">0.0</strong>
+                    <span className="text-gray-500"> (0 évaluations)</span>
                   </span>
                 </li>
                 <li className="flex items-center gap-2">
                   <IconLeaf className="h-5 w-5 text-teal-600" />
                   <span>
-                    <strong className="font-semibold text-gray-900">320</strong>
+                    <strong className="font-semibold text-gray-900">0</strong>
                     <span className="text-gray-500"> Score écologique</span>
                   </span>
                 </li>
                 <li className="flex items-center gap-2">
                   <IconPin className="h-5 w-5 text-red-500" />
-                  <span>
-                    <strong className="font-semibold text-gray-900">Casablanca</strong>
-                    <span className="text-gray-500"> Maroc</span>
-                  </span>
+                  <span className="text-gray-500">—</span>
                 </li>
               </ul>
             </ProfileIdentity>
