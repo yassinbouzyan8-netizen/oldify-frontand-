@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { AnnonceDetail } from "@/data/annonce-details";
+import { isSupabasePublicStorageUrl } from "@/lib/image-src";
 
 type Props = {
   detail: AnnonceDetail;
@@ -44,6 +45,7 @@ export function AnnonceDetailView({ detail }: Props) {
                 className="object-cover"
                 sizes="(max-width: 1024px) 100vw, 50vw"
                 priority
+                unoptimized={isSupabasePublicStorageUrl(product.image)}
               />
               <button
                 type="button"
@@ -76,6 +78,7 @@ export function AnnonceDetailView({ detail }: Props) {
                         fill
                         className="object-cover"
                         sizes="48px"
+                        unoptimized={isSupabasePublicStorageUrl(seller.avatar)}
                       />
                     </div>
                     <div>

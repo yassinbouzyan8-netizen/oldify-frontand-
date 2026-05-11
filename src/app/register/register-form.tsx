@@ -55,7 +55,8 @@ export function RegisterForm() {
                 fullName: name.trim() || undefined,
               }),
             });
-            const regData = (await regRes.json()) as {
+            const regText = await regRes.text();
+            const regData = (regText ? JSON.parse(regText) : {}) as {
               error?: string;
               tokenSet?: boolean;
             };
@@ -74,7 +75,10 @@ export function RegisterForm() {
                   password,
                 }),
               });
-              const loginData = (await loginRes.json()) as { error?: string };
+              const loginText = await loginRes.text();
+              const loginData = (loginText ? JSON.parse(loginText) : {}) as {
+                error?: string;
+              };
               if (!loginRes.ok) {
                 setError(
                   mapAuthError(

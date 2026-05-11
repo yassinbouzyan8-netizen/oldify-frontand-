@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { CatalogFilterId } from "@/data/products";
 import { PRODUCTS } from "@/data/products";
+import { isSupabasePublicStorageUrl } from "@/lib/image-src";
 
 type RecommendedGridProps = {
   activeCategory: CatalogFilterId;
@@ -124,6 +125,7 @@ export function RecommendedGrid({ activeCategory }: RecommendedGridProps) {
                     fill
                     sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                     priority={index === 0}
+                    unoptimized={isSupabasePublicStorageUrl(item.image)}
                     className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                   />
                   <Link

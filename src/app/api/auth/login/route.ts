@@ -7,7 +7,7 @@ import {
 import { mapAuthError } from "@/lib/auth-errors";
 import { setTokenCookie } from "@/lib/auth-cookie-response";
 import { signSessionToken, verifyPassword } from "@/lib/local-auth/crypto";
-import { findUserByEmail } from "@/lib/local-auth/store";
+import { supabaseAdminRest } from "@/lib/supabase-admin-rest";
 import {
   extractAccessToken,
   messageFromUpstream,
@@ -16,6 +16,7 @@ import {
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  try {
   let body: { email?: string; password?: string };
   try {
     body = await request.json();
@@ -33,14 +34,21 @@ export async function POST(request: Request) {
   }
 
   if (!usesExternalAuthApi()) {
-    const user = findUserByEmail(email);
-    if (!user || !verifyPassword(password, user.passwordHash)) {
+    const norm = email.trim().toLowerCase();
+    const found = await supabaseAdminRest<
+      Array<{ id: string; email: string; password_hash: string }>
+    >(
+      `/app_users?select=id,email,password_hash&email=eq.${encodeURIComponent(norm)}&limit=1`,
+      { method: "GET" },
+    );
+    const row = Array.isArray(found.data) ? found.data[0] : null;
+    if (!row || !verifyPassword(password, row.password_hash)) {
       return NextResponse.json(
         { error: mapAuthError("Invalid login credentials") },
         { status: 401 },
       );
     }
-    const token = signSessionToken({ sub: user.id, email: user.email });
+    const token = signSessionToken({ sub: row.id, email: row.email });
     const res = NextResponse.json({ ok: true });
     setTokenCookie(res, token);
     return res;
@@ -95,4 +103,8 @@ export async function POST(request: Request) {
   const res = NextResponse.json({ ok: true });
   setTokenCookie(res, token);
   return res;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Erreur serveur.";
+    return NextResponse.json({ error: mapAuthError(msg) }, { status: 500 });
+  }
 }

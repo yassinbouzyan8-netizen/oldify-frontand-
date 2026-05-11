@@ -1,7 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import { useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { isSupabasePublicStorageUrl } from "@/lib/image-src";
 
 const CATEGORIES = [
   "Femmes",
@@ -31,6 +33,8 @@ export function PublierAnnonceForm() {
   const router = useRouter();
   const [delivery, setDelivery] = useState(true);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,8 +48,8 @@ export function PublierAnnonceForm() {
   const [city, setCity] = useState<(typeof CITIES)[number]>("Casablanca");
 
   const photosHelp = useMemo(() => {
-    if (!fileName) return "Les photos ne sont pas encore envoyées en base (étape suivante).";
-    return `${fileName} — envoi des photos à venir (Storage).`;
+    if (!fileName) return "Choisis 1 à 8 photos (PNG/JPG).";
+    return `${fileName}`;
   }, [fileName]);
 
   return (
@@ -81,6 +85,24 @@ export function PublierAnnonceForm() {
             setError(null);
             setSubmitting(true);
             try {
+              // 1) Upload photos (Storage) → URLs
+              let imageUrls: string[] = [];
+              if (files.length > 0) {
+                const fd = new FormData();
+                files.forEach((f) => fd.append("files", f));
+                const up = await fetch("/api/uploads/annonces", {
+                  method: "POST",
+                  body: fd,
+                  credentials: "include",
+                });
+                const upJson = (await up.json()) as { urls?: string[]; error?: string };
+                if (!up.ok) {
+                  setError(upJson.error || "Upload des photos impossible.");
+                  return;
+                }
+                imageUrls = upJson.urls ?? [];
+              }
+
               const res = await fetch("/api/annonces", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -93,7 +115,7 @@ export function PublierAnnonceForm() {
                   price,
                   city,
                   delivery,
-                  images: [],
+                  images: imageUrls,
                 }),
               });
               const data = (await res.json()) as {
@@ -130,8 +152,11 @@ export function PublierAnnonceForm() {
               className="sr-only"
               multiple
               onChange={(e) => {
-                const n = e.target.files?.length ?? 0;
+                const list = Array.from(e.target.files ?? []).slice(0, 8);
+                setFiles(list);
+                const n = list.length;
                 setFileName(n > 0 ? `${n} fichier(s) sélectionné(s)` : null);
+                setPreviews(list.map((f) => URL.createObjectURL(f)));
               }}
             />
             <label
@@ -151,6 +176,26 @@ export function PublierAnnonceForm() {
               <span className="mt-3 text-xs text-gray-500">{photosHelp}</span>
             </label>
           </div>
+
+          {previews.length > 0 ? (
+            <ul className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+              {previews.map((src, i) => (
+                <li
+                  key={`${src}-${i}`}
+                  className="relative aspect-square overflow-hidden rounded-xl bg-gray-100"
+                >
+                  <Image
+                    src={src}
+                    alt=""
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 640px) 33vw, 25vw"
+                    unoptimized={!isSupabasePublicStorageUrl(src)}
+                  />
+                </li>
+              ))}
+            </ul>
+          ) : null}
 
           <div>
             <label htmlFor="titre" className="mb-2 block text-sm font-medium text-gray-700">

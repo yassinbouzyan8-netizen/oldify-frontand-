@@ -8,7 +8,7 @@ import {
 } from "@/lib/auth-backend-config";
 import { parseAppUser } from "@/lib/auth-upstream";
 import { verifySessionToken } from "@/lib/local-auth/crypto";
-import { findUserById } from "@/lib/local-auth/store";
+import { supabaseAdminRest } from "@/lib/supabase-admin-rest";
 
 export async function getCurrentUser(): Promise<AppUser | null> {
   const jar = await cookies();
@@ -18,7 +18,13 @@ export async function getCurrentUser(): Promise<AppUser | null> {
   if (!usesExternalAuthApi()) {
     const payload = verifySessionToken(token);
     if (!payload) return null;
-    const row = findUserById(payload.sub);
+    const found = await supabaseAdminRest<
+      Array<{ id: string; email: string; full_name: string | null }>
+    >(
+      `/app_users?select=id,email,full_name&id=eq.${encodeURIComponent(payload.sub)}&limit=1`,
+      { method: "GET" },
+    );
+    const row = Array.isArray(found.data) ? found.data[0] : null;
     if (!row) return null;
     return { id: row.id, email: row.email, full_name: row.full_name };
   }

@@ -6,8 +6,8 @@ import {
 } from "@/lib/auth-backend-config";
 import { mapAuthError } from "@/lib/auth-errors";
 import { setTokenCookie } from "@/lib/auth-cookie-response";
-import { signSessionToken } from "@/lib/local-auth/crypto";
-import { createLocalUser } from "@/lib/local-auth/store";
+import { hashPassword, signSessionToken } from "@/lib/local-auth/crypto";
+import { supabaseAdminRest } from "@/lib/supabase-admin-rest";
 import {
   extractAccessToken,
   messageFromUpstream,
@@ -16,6 +16,7 @@ import {
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  try {
   let body: { email?: string; password?: string; fullName?: string };
   try {
     body = await request.json();
@@ -35,17 +36,52 @@ export async function POST(request: Request) {
   }
 
   if (!usesExternalAuthApi()) {
-    const created = createLocalUser(email, password, fullName || null);
-    if (!created.ok) {
+    const norm = email.trim().toLowerCase();
+    // 1) vérifier existence
+    const exists = await supabaseAdminRest<Array<{ id: string }>>(
+      `/app_users?select=id&email=eq.${encodeURIComponent(norm)}&limit=1`,
+      { method: "GET" },
+    );
+    if (exists.status < 400 && Array.isArray(exists.data) && exists.data.length > 0) {
       return NextResponse.json(
         { error: mapAuthError("User already registered") },
         { status: 409 },
       );
     }
-    const token = signSessionToken({
-      sub: created.user.id,
-      email: created.user.email,
+
+    const passwordHash = hashPassword(password);
+    const payload = {
+      email: norm,
+      password_hash: passwordHash,
+      full_name: fullName || null,
+    };
+    const created = await supabaseAdminRest<
+      Array<{ id: string; email: string; full_name: string | null }>
+    >("/app_users?select=id,email,full_name", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify(payload),
     });
+    if (created.status >= 400 || !Array.isArray(created.data) || !created.data[0]) {
+      return NextResponse.json(
+        { error: "Impossible de créer le compte (DB)." },
+        { status: 500 },
+      );
+    }
+
+    const row = created.data[0];
+    // 2) profil table
+    await supabaseAdminRest("/app_profiles", {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates" },
+      body: JSON.stringify({
+        user_id: row.id,
+        email: row.email,
+        full_name: row.full_name,
+      }),
+    });
+
+    const token = signSessionToken({ sub: row.id, email: row.email });
     const res = NextResponse.json({ ok: true, tokenSet: true });
     setTokenCookie(res, token);
     return res;
@@ -101,4 +137,8 @@ export async function POST(request: Request) {
     setTokenCookie(res, token);
   }
   return res;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Erreur serveur.";
+    return NextResponse.json({ error: mapAuthError(msg) }, { status: 500 });
+  }
 }

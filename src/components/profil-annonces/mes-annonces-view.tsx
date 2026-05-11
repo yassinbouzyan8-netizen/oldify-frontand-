@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { isSupabasePublicStorageUrl } from "@/lib/image-src";
 import {
   type ListingStatus,
   type UserListing,
@@ -146,6 +147,7 @@ function ListingRow({ item }: { item: UserListing }) {
           fill
           className="object-cover"
           sizes="80px"
+          unoptimized={isSupabasePublicStorageUrl(item.image)}
         />
       </Link>
 

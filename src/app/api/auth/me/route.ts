@@ -8,8 +8,8 @@ import {
 import { AUTH_COOKIE_NAME } from "@/lib/auth-cookie";
 import { parseAppUser } from "@/lib/auth-upstream";
 import { verifySessionToken } from "@/lib/local-auth/crypto";
-import { findUserById } from "@/lib/local-auth/store";
 import type { AppUser } from "@/lib/auth-app-user";
+import { supabaseAdminRest } from "@/lib/supabase-admin-rest";
 
 export const runtime = "nodejs";
 
@@ -25,7 +25,13 @@ export async function GET() {
     if (!payload) {
       return NextResponse.json({ user: null });
     }
-    const row = findUserById(payload.sub);
+    const found = await supabaseAdminRest<
+      Array<{ id: string; email: string; full_name: string | null }>
+    >(
+      `/app_users?select=id,email,full_name&id=eq.${encodeURIComponent(payload.sub)}&limit=1`,
+      { method: "GET" },
+    );
+    const row = Array.isArray(found.data) ? found.data[0] : null;
     if (!row) {
       return NextResponse.json({ user: null });
     }
