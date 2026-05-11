@@ -7,8 +7,10 @@ import type { AnnonceRow } from "@/lib/annonce-types";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 type Props = {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 };
+
+export const dynamic = "force-dynamic";
 
 export function generateStaticParams() {
   return getAllAnnonceIds().map((id) => ({ id }));
@@ -62,7 +64,7 @@ async function getAnnonceFromDb(id: string): Promise<AnnonceDetail | null> {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
+  const { id } = params;
   const detail = getAnnonceById(id) ?? (await getAnnonceFromDb(id));
   if (!detail) return { title: "Annonce introuvable" };
   return {
@@ -72,7 +74,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function AnnoncePage({ params }: Props) {
-  const { id } = await params;
+  const { id } = params;
   const detail = getAnnonceById(id) ?? (await getAnnonceFromDb(id));
   if (!detail) notFound();
 
