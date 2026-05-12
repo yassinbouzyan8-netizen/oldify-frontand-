@@ -4,16 +4,38 @@ import { AnnonceDetailView } from "@/components/annonce/annonce-detail-view";
 import { getAllAnnonceIds, getAnnonceById } from "@/data/annonce-details";
 import type { AnnonceDetail } from "@/data/annonce-details";
 import type { AnnonceRow } from "@/lib/annonce-types";
+import { displayNameFromUser } from "@/lib/auth-display-name";
+import type { AppUser } from "@/lib/auth-app-user";
+import { supabaseAdminRest } from "@/lib/supabase-admin-rest";
 import { supabaseRest } from "@/lib/supabase-rest";
 
 type Props = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export const dynamic = "force-dynamic";
 
 export function generateStaticParams() {
   return getAllAnnonceIds().map((id) => ({ id }));
+}
+
+async function fetchOwnerForAnnonce(
+  ownerId: string,
+): Promise<{ email: string; full_name: string | null } | null> {
+  const id = ownerId?.trim();
+  if (!id) return null;
+  try {
+    const { data, status } = await supabaseAdminRest<
+      Array<{ email: string; full_name: string | null }>
+    >(
+      `/app_users?select=email,full_name&id=eq.${encodeURIComponent(id)}&limit=1`,
+      { method: "GET" },
+    );
+    if (status >= 400 || !Array.isArray(data) || !data[0]) return null;
+    return data[0];
+  } catch {
+    return null;
+  }
 }
 
 async function getAnnonceFromDb(id: string): Promise<AnnonceDetail | null> {
@@ -25,6 +47,12 @@ async function getAnnonceFromDb(id: string): Promise<AnnonceDetail | null> {
   if (status >= 400) return null;
   const row = Array.isArray(data) ? data[0] : null;
   if (!row) return null;
+
+  const owner = await fetchOwnerForAnnonce(row.owner_id);
+  const sellerUser: AppUser | null = owner
+    ? { id: row.owner_id, email: owner.email, full_name: owner.full_name }
+    : null;
+  const sellerName = sellerUser ? displayNameFromUser(sellerUser) : "Vendeur";
 
   const categoryLabel = row.category || "Autres";
   const breadcrumb = [
@@ -55,16 +83,17 @@ async function getAnnonceFromDb(id: string): Promise<AnnonceDetail | null> {
       ? ["Livraison disponible", `Remise en main propre à ${row.city}`]
       : [`Remise en main propre à ${row.city}`],
     seller: {
-      name: "Vendeur",
+      name: sellerName,
       avatar: "/imges/image.png",
       rating: 4.8,
       reviews: 0,
+      email: owner?.email ?? null,
     },
   };
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = params;
+  const { id } = await params;
   const detail = getAnnonceById(id) ?? (await getAnnonceFromDb(id));
   if (!detail) return { title: "Annonce introuvable" };
   return {
@@ -74,7 +103,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function AnnoncePage({ params }: Props) {
-  const { id } = params;
+  const { id } = await params;
   const detail = getAnnonceById(id) ?? (await getAnnonceFromDb(id));
   if (!detail) notFound();
 

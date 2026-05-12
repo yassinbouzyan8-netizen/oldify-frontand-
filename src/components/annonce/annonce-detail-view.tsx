@@ -11,6 +11,11 @@ export function AnnonceDetailView({ detail }: Props) {
   const { product, breadcrumb, condition, postedText, description, specs, tags, shipping, seller } =
     detail;
 
+  const mailSubject = encodeURIComponent(`Oldify — ${product.title}`);
+  const mailtoHref = seller.email
+    ? `mailto:${encodeURIComponent(seller.email)}?subject=${mailSubject}`
+    : null;
+
   return (
     <div className="pb-10 pt-4 sm:pb-12">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
@@ -83,26 +88,47 @@ export function AnnonceDetailView({ detail }: Props) {
                     </div>
                     <div>
                       <p className="font-semibold text-gray-900">{seller.name}</p>
-                      <p className="mt-0.5 flex items-center gap-1 text-sm text-gray-600">
-                        <StarIcon className="h-4 w-4 text-amber-400" />
-                        <span>
-                          <strong className="font-semibold text-gray-900">
-                            {seller.rating}
-                          </strong>
-                          <span className="text-gray-500">
-                            {" "}
-                            ({seller.reviews} évaluations)
+                      {seller.email ? (
+                        <p className="mt-0.5 text-sm text-gray-600">
+                          <span className="text-gray-500">Contact : </span>
+                          <a
+                            href={`mailto:${encodeURIComponent(seller.email)}`}
+                            className="font-medium text-teal-700 underline-offset-2 hover:underline"
+                          >
+                            {seller.email}
+                          </a>
+                        </p>
+                      ) : (
+                        <p className="mt-0.5 flex items-center gap-1 text-sm text-gray-600">
+                          <StarIcon className="h-4 w-4 text-amber-400" />
+                          <span>
+                            <strong className="font-semibold text-gray-900">
+                              {seller.rating}
+                            </strong>
+                            <span className="text-gray-500">
+                              {" "}
+                              ({seller.reviews} évaluations)
+                            </span>
                           </span>
-                        </span>
-                      </p>
+                        </p>
+                      )}
                     </div>
                   </div>
-                  <Link
-                    href={`/profil/messages?to=${encodeURIComponent(seller.name)}`}
-                    className="inline-flex shrink-0 items-center justify-center rounded-xl border-2 border-teal-600 bg-white px-5 py-2.5 text-sm font-semibold text-teal-600 transition-colors hover:bg-teal-50"
-                  >
-                    Contacter
-                  </Link>
+                  {mailtoHref ? (
+                    <a
+                      href={mailtoHref}
+                      className="inline-flex shrink-0 items-center justify-center rounded-xl border-2 border-teal-600 bg-white px-5 py-2.5 text-sm font-semibold text-teal-600 transition-colors hover:bg-teal-50"
+                    >
+                      Contacter par e-mail
+                    </a>
+                  ) : (
+                    <Link
+                      href={`/profil/messages?to=${encodeURIComponent(seller.name)}`}
+                      className="inline-flex shrink-0 items-center justify-center rounded-xl border-2 border-teal-600 bg-white px-5 py-2.5 text-sm font-semibold text-teal-600 transition-colors hover:bg-teal-50"
+                    >
+                      Contacter
+                    </Link>
+                  )}
                 </div>
               </div>
 

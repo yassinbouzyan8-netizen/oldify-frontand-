@@ -20,6 +20,8 @@ export type AnnonceDetail = {
     avatar: string;
     rating: number;
     reviews: number;
+    /** Présent pour les annonces chargées depuis la base (contact du propriétaire). */
+    email?: string | null;
   };
 };
 
