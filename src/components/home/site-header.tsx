@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { AdminHeaderLink } from "./admin-header-link";
 import { LogoutButton } from "./logout-button";
 import { HeaderProfileLink } from "./header-profile-link";
 
@@ -53,6 +54,7 @@ export function SiteHeader({ showBell = false }: SiteHeaderProps) {
           >
             Vends tes articles
           </Link>
+          <AdminHeaderLink />
           <HeaderProfileLink />
           <LogoutButton />
         </div>

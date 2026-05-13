@@ -1,4 +1,5 @@
 import type { AppUser } from "@/lib/auth-app-user";
+import { normalizeUserRole } from "@/lib/auth-role";
 
 /** Extrait un JWT / token depuis des réponses API typiques (Nest, etc.). */
 export function extractAccessToken(json: unknown): string | null {
@@ -44,10 +45,15 @@ export function parseAppUser(json: unknown): AppUser | null {
   const fn = u.full_name ?? u.fullName ?? u.name;
   const full_name =
     typeof fn === "string" && fn.trim() ? fn.trim() : null;
+  const roleRaw = u.role ?? u.userRole;
+  const role = normalizeUserRole(
+    typeof roleRaw === "string" ? roleRaw : undefined,
+  );
   if (!id && !email) return null;
   return {
     id: id || email,
     email: email || id,
     full_name,
+    role,
   };
 }

@@ -50,7 +50,12 @@ async function getAnnonceFromDb(id: string): Promise<AnnonceDetail | null> {
 
   const owner = await fetchOwnerForAnnonce(row.owner_id);
   const sellerUser: AppUser | null = owner
-    ? { id: row.owner_id, email: owner.email, full_name: owner.full_name }
+    ? {
+        id: row.owner_id,
+        email: owner.email,
+        full_name: owner.full_name,
+        role: "user",
+      }
     : null;
   const sellerName = sellerUser ? displayNameFromUser(sellerUser) : "Vendeur";
 

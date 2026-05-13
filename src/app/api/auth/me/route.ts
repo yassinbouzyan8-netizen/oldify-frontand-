@@ -6,10 +6,9 @@ import {
   usesExternalAuthApi,
 } from "@/lib/auth-backend-config";
 import { AUTH_COOKIE_NAME } from "@/lib/auth-cookie";
+import { getLocalAppUserById } from "@/lib/auth-local-db-user";
 import { parseAppUser } from "@/lib/auth-upstream";
 import { verifySessionToken } from "@/lib/local-auth/crypto";
-import type { AppUser } from "@/lib/auth-app-user";
-import { supabaseAdminRest } from "@/lib/supabase-admin-rest";
 
 export const runtime = "nodejs";
 
@@ -25,21 +24,10 @@ export async function GET() {
     if (!payload) {
       return NextResponse.json({ user: null });
     }
-    const found = await supabaseAdminRest<
-      Array<{ id: string; email: string; full_name: string | null }>
-    >(
-      `/app_users?select=id,email,full_name&id=eq.${encodeURIComponent(payload.sub)}&limit=1`,
-      { method: "GET" },
-    );
-    const row = Array.isArray(found.data) ? found.data[0] : null;
-    if (!row) {
+    const user = await getLocalAppUserById(payload.sub);
+    if (!user) {
       return NextResponse.json({ user: null });
     }
-    const user: AppUser = {
-      id: row.id,
-      email: row.email,
-      full_name: row.full_name,
-    };
     return NextResponse.json({ user });
   }
 

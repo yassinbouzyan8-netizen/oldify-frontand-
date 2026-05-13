@@ -6,8 +6,11 @@ import {
 } from "@/lib/auth-backend-config";
 import { mapAuthError } from "@/lib/auth-errors";
 import { setTokenCookie } from "@/lib/auth-cookie-response";
+import {
+  appUserFromLoginRow,
+  getLocalLoginRowByEmail,
+} from "@/lib/auth-local-db-user";
 import { signSessionToken, verifyPassword } from "@/lib/local-auth/crypto";
-import { supabaseAdminRest } from "@/lib/supabase-admin-rest";
 import {
   extractAccessToken,
   messageFromUpstream,
@@ -35,13 +38,7 @@ export async function POST(request: Request) {
 
   if (!usesExternalAuthApi()) {
     const norm = email.trim().toLowerCase();
-    const found = await supabaseAdminRest<
-      Array<{ id: string; email: string; password_hash: string }>
-    >(
-      `/app_users?select=id,email,password_hash&email=eq.${encodeURIComponent(norm)}&limit=1`,
-      { method: "GET" },
-    );
-    const row = Array.isArray(found.data) ? found.data[0] : null;
+    const row = await getLocalLoginRowByEmail(norm);
     if (!row || !verifyPassword(password, row.password_hash)) {
       return NextResponse.json(
         { error: mapAuthError("Invalid login credentials") },
@@ -49,7 +46,10 @@ export async function POST(request: Request) {
       );
     }
     const token = signSessionToken({ sub: row.id, email: row.email });
-    const res = NextResponse.json({ ok: true });
+    const res = NextResponse.json({
+      ok: true,
+      user: appUserFromLoginRow(row),
+    });
     setTokenCookie(res, token);
     return res;
   }

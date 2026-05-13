@@ -43,3 +43,28 @@ export async function supabaseAdminRest<T>(
   return { data: json, status: res.status };
 }
 
+/** Compte exact PostgREST (`Prefer: count=exact`) sans charger les lignes. */
+export async function supabaseAdminExactCount(
+  pathWithQuery: string,
+): Promise<number | null> {
+  const { url, serviceRoleKey } = getSupabaseAdminEnv();
+  const endpoint = `${url}/rest/v1${pathWithQuery.startsWith("/") ? "" : "/"}${pathWithQuery}`;
+
+  const res = await fetch(endpoint, {
+    method: "HEAD",
+    headers: {
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
+      Prefer: "count=exact",
+    },
+    cache: "no-store",
+  });
+
+  const cr = res.headers.get("content-range");
+  if (!cr) return null;
+  const totalPart = cr.split("/")[1];
+  if (!totalPart || totalPart === "*") return null;
+  const n = Number.parseInt(totalPart, 10);
+  return Number.isFinite(n) ? n : null;
+}
+

@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import type { AppUser } from "@/lib/auth-app-user";
 import { mapAuthError } from "@/lib/auth-errors";
+import { isAdminUser } from "@/lib/auth-role";
 
 export function LoginForm() {
   const router = useRouter();
@@ -43,7 +45,10 @@ export function LoginForm() {
                 password,
               }),
             });
-            const data = (await res.json()) as { error?: string };
+            const data = (await res.json()) as {
+              error?: string;
+              user?: AppUser;
+            };
             if (!res.ok) {
               setError(mapAuthError(data.error || res.statusText));
               return;
@@ -51,7 +56,18 @@ export function LoginForm() {
             if (typeof window !== "undefined") {
               window.dispatchEvent(new Event("oldify-auth-change"));
             }
-            router.push("/");
+            let dest = "/";
+            if (isAdminUser(data.user)) {
+              dest = "/admin";
+            } else if (!data.user) {
+              await new Promise((r) => setTimeout(r, 80));
+              const meRes = await fetch("/api/auth/me", {
+                credentials: "include",
+              });
+              const me = (await meRes.json()) as { user?: AppUser | null };
+              if (isAdminUser(me.user)) dest = "/admin";
+            }
+            router.push(dest);
             router.refresh();
           } finally {
             setLoading(false);

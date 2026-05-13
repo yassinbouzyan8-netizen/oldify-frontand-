@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed:users": "node scripts/seed-app-users.mjs"
   },
   "dependencies": {
     "next": "16.2.6",

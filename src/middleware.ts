@@ -5,6 +5,7 @@ const PUBLIC_PATHS = new Set([
   "/login",
   "/register",
   "/mot-de-passe-oublie",
+  "/post-login",
 ]);
 
 function isStaticAsset(pathname: string): boolean {
@@ -32,7 +33,7 @@ export function middleware(request: NextRequest) {
 
   if (PUBLIC_PATHS.has(pathname)) {
     if (sessionOk && pathname === "/login") {
-      return NextResponse.redirect(new URL("/", request.url));
+      return NextResponse.redirect(new URL("/post-login", request.url));
     }
     return NextResponse.next();
   }
